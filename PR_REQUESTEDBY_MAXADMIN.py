@@ -1,7 +1,13 @@
+from java.util import Calendar
+from java.util import Date
+
 # section for request date
 if status == 'ISSUED':
-    stat_date = mbo.getString('STATUSDATE')
-    new_date = stat_date.replace(stat_date.split(':')[1].split(' ')[0], str(int(stat_date.split(':')[1].split(' ')[0]) + 5))
+    stat_date = mbo.getDate('STATUSDATE')
+    cal = Calendar.getInstance()
+    cal.setTime(stat_date)
+    cal.add(Calendar.MINUTE, +5)
+    new_date = cal.getTime()
     request_date = new_date
 
 # section for requestedby
