@@ -45,11 +45,40 @@ Email from person groups
 select PERSONGROUPTEAM.persongroup, PERSONGROUPTEAM.respparty, PERSONGROUPTEAM.useforsite, email.emailaddress, person.displayname from PERSONGROUPTEAM 
 left join email on email.personid = persongroupteam.respparty 
 left join person on person.personid = persongroupteam.respparty 
-where PERSONGROUPTEAM.persongroup in ('MAXTECH', 'PLANTMGR', 'MECHSUP', 'SUPERINT') 
+where PERSONGROUPTEAM.persongroup in ('MAXTECH', 'PLANTMGR', 'MECHSUP', 'SUPERINT')
 
 PM on Asset w Routes
-select pmnum, description, coalesce(t2.assetnum, t1.assetnum), frequency, frequnit, status as assetnum from
-(select pmnum, description, assetnum, route, frequency, frequnit, status from pm where siteid = 'CA') t1
+select pmnum, description, coalesce(t2.assetnum, t1.assetnum) as assetnum, frequency, frequnit, status from
+(select pmnum, description, assetnum, route, frequency, frequnit, status from pm where siteid = 'GV') t1
 left join
-(select assetnum, route from route_stop where siteid = 'CA') t2
+(select assetnum, route from route_stop where siteid = 'GV') t2
 on t1.route = t2.route 
+
+OrderVsIssueUnit
+DECLARE @SITEID AS VARCHAR(5)='RAM' --quick way to change site
+SELECT a.itemnum, a.vendor, a.siteid, a.issueunit AS InventoryIssueUnit, a.orderunit AS InventoryOrderUnit, b.lastdate, b.orderunit AS InvvendorOrderUnit FROM -- we only need these columns
+(SELECT itemnum, vendor, siteid, issueunit, orderunit FROM inventory WHERE siteid=@SITEID) AS a -- left side of join statement, inventory
+JOIN (
+SELECT itemnum, vendor, lastdate, orderunit, siteid
+FROM
+( -- right side of join, invvender has duplicates, use row_number() to count duplicate itemnum ordered by lastdate, only return row_number = 1 entries
+	SELECT invvendor.itemnum, invvendor.lastdate, invvendor.vendor, invvendor.orderunit, invvendor.siteid, 
+	row_number() OVER (PARTITION BY invvendor.itemnum ORDER BY invvendor.lastdate DESC) AS rowno
+	FROM invvendor 
+	WHERE invvendor.siteid = @SITEID
+) x
+WHERE x.rowno = 1
+) AS b
+on a.itemnum = b.itemnum WHERE a.issueunit!=b.orderunit OR a.orderunit!=b.orderunit; -- only return entries where the units dont match
+
+Looking for email templates
+select top 100 * from commtemplate where subject like '%requires review'
+
+WITH CTE(jpnum, orgid, craft, laborhrs, duplicatecount)
+AS (SELECT jpnum, orgid, craft, laborhrs, 
+           ROW_NUMBER() OVER(
+		   PARTITION BY jpnum, orgid, craft, laborhrs
+           ORDER BY jpnum) AS DuplicateCount
+    FROM joblabor where len(jpnum) < 10)
+SELECT *
+FROM CTE where duplicatecount > 1;
