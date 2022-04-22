@@ -82,3 +82,28 @@ AS (SELECT jpnum, orgid, craft, laborhrs,
     FROM joblabor where len(jpnum) < 10)
 SELECT *
 FROM CTE where duplicatecount > 1;
+
+select wonum, statusdate from workorder 
+WHERE statusdate >= cast(dateadd(day,2-datepart(dw, getdate()), getdate()) as date)
+and siteid = 'gh'
+order by statusdate asc
+
+(siteid = (select defsite from maxuser where userid = :user) and 
+refwo in (select wonum from workorder 
+where siteid = (select defsite from maxuser where userid = :user) and
+parent is null and istask = 0 and worktype!='STG' and
+(status = 'waitclose' or status = 'close') 
+and statusdate between dateadd(day, - 7, convert(varchar, getdate(), 101)) and getdate()))
+
+select * from
+(select
+wonum, status, parent, worktype, description,
+assetnum, jpnum, pmnum, actlabhrs, haschildren, 
+historyflag, reportedby, actstart, actfinish, 
+schedfinish, siteid, woclass, workorderid, 
+wogroup, iko_overduedate 
+from workorder
+where assetnum in ('assetlist')) t1
+left join 
+(select ldtext, ldkey from longdescription where ldownertable = 'workorder') t2
+on t1.workorderid = t2.ldkey
