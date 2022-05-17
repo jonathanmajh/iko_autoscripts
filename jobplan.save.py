@@ -7,9 +7,6 @@ if interactive == True:
         mbo.setValue('PLUSCCHANGEBY', user)
         mbo.setValue('PLUSCCHANGEDATE', timeStamp)
     else:
-        jpnum = mbo.getString('jpnum')
-        jobplan = mbo.getMboSet("$JOBPLAN", "JOBPLAN", "JPNUM='" + jpnum + "'")
-        if jobplan.count() == 1:
-            jobplan = jobplan.getMbo(0)
-            jobplan.setValue('PLUSCCHANGEBY', user)
-            jobplan.setValue('PLUSCCHANGEDATE', timeStamp)
+        jobplan = mbo.getOwner()
+        jobplan.setValue('PLUSCCHANGEBY', user)
+        jobplan.setValue('PLUSCCHANGEDATE', timeStamp)
