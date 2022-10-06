@@ -9,12 +9,14 @@ var s = con.createStatement();
 var sites = [];
 var sql = "select siteid from site";
 var result = s.executeQuery(sql);
+var ignoresites = ['GX', 'GP','GM','COM','GR'];
 while (result.next()) {
     sites.push(result.getString('siteid') + '');
 }
 if (sites.indexOf(site + '') == -1) {
     resp.error = typeof site + ' Site ID is not valid, Valid Site IDs: ' + sites;
-    var responseBody = JSON.stringify(resp);
+} else if (ignoresites.indexOf(site + '') != -1) {
+    resp.target = '-';
 } else {
     resp.target = 0.8;
     // get KPI data
@@ -65,6 +67,5 @@ if (sites.indexOf(site + '') == -1) {
     s.close();
     con.commit();
     MXServer.getMXServer().getDBManager().freeConnection(conKey);
-
-    var responseBody = JSON.stringify(resp);
 }
+var responseBody = JSON.stringify(resp);

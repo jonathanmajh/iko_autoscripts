@@ -113,6 +113,7 @@ if (sites.indexOf(site + '') == -1) {
     }
     result.close();
     resp.info = temp;
+    resp.target = 1;
     s.close();
     con.commit();
     MXServer.getMXServer().getDBManager().freeConnection(conKey);

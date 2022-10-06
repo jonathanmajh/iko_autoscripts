@@ -18,7 +18,40 @@ if (sites.indexOf(site + '') == -1) {
 } else {
     resp.target = 0.8;
     // get KPI data
-    sql = "SELECT totalwocount.yyear " + 
+    sql = "WITH yearmonth ( " + 
+"	year " + 
+"	,month " + 
+"	) " + 
+"AS ( " + 
+"	SELECT datepart(year, dates) AS year " + 
+"		,datepart(month, dates) AS month " + 
+"	FROM ( " + 
+"		VALUES (dateadd(month, - 1, getdate())) " + 
+"			,(dateadd(month, - 2, getdate())) " + 
+"			,(dateadd(month, - 3, getdate())) " + 
+"			,(dateadd(month, - 4, getdate())) " + 
+"			,(dateadd(month, - 5, getdate())) " + 
+"			,(dateadd(month, - 6, getdate())) " + 
+"			,(dateadd(month, - 7, getdate())) " + 
+"			,(dateadd(month, - 8, getdate())) " + 
+"			,(dateadd(month, - 9, getdate())) " + 
+"			,(dateadd(month, - 10, getdate())) " + 
+"			,(dateadd(month, - 11, getdate())) " + 
+"			,(dateadd(month, - 12, getdate())) " + 
+"		) AS tt(dates) " + 
+"	) " + 
+"SELECT year AS yyear " + 
+"	,month AS mmonth " + 
+"	,coalesce(alllaborhours, 0) AS alllaborhours " + 
+"	,coalesce(routestoplaborhours, 0) AS routestoplaborhours " + 
+"	,coalesce(lowestlevelassetlaborhours, 0) AS lowestlevelassetlaborhours " + 
+"	,coalesce(notlowestlevelassetlaborhours, 0) AS notlowestlevelassetlaborhours " + 
+"FROM ( " + 
+"	SELECT * " + 
+"	FROM yearmonth " + 
+"	) tt1 " + 
+"LEFT JOIN ( " + 
+"SELECT totalwocount.yyear " + 
     "	,totalwocount.mmonth " + 
     "	,totalwocount.laborhours alllaborhours " + 
     "	,isnull(workorderwithroutestop.laborhours, 0) routestoplaborhours " + 
@@ -143,11 +176,14 @@ if (sites.indexOf(site + '') == -1) {
     "	GROUP BY DATEPART(month, labtrans.startdate) " + 
     "		,DATEPART(year, labtrans.startdate) " + 
     "	) workordernotlowestlevelasset ON totalwocount.mmonth = workordernotlowestlevelasset.mmonth " + 
-    "	AND totalwocount.yyear = workordernotlowestlevelasset.yyear";
+    "	AND totalwocount.yyear = workordernotlowestlevelasset.yyear " +
+"	) tt2 ON tt1.month = tt2.mmonth " + 
+"	AND tt1.year = tt2.yyear ";
 
     result = s.executeQuery(sql);
     temp = [];
     while (result.next()) {
+
         temp.push({
             'year': result.getInt('yyear'),
             'month': result.getInt('mmonth'),
@@ -155,7 +191,7 @@ if (sites.indexOf(site + '') == -1) {
             'routestoplaborhours': result.getInt('routestoplaborhours'),
             'lowestlevelassetlaborhours': result.getInt('lowestlevelassetlaborhours'),
             'notlowestlevelassetlaborhours': result.getInt('notlowestlevelassetlaborhours'),
-            'percentage': (result.getInt('lowestlevelassetlaborhours')+result.getInt('routestoplaborhours'))/result.getInt('alllaborhours'),
+            'percentage': (result.getInt('lowestlevelassetlaborhours')+result.getInt('routestoplaborhours'))/result.getInt('alllaborhours') || 0,
         }
         );
     }

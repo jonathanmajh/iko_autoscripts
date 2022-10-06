@@ -18,36 +18,61 @@ if (sites.indexOf(site + '') == -1) {
 } else {
     resp.target = 0.8;
     // get KPI data
-    sql = "SELECT year " + 
-    "	,month " + 
+    sql = "WITH yearmonth ( " + 
+"	year " + 
+"	,month " + 
+"	) " + 
+"AS ( " + 
+"	SELECT datepart(year, dates) AS year " + 
+"		,datepart(month, dates) AS month " + 
+"	FROM ( " + 
+"		VALUES (dateadd(month, - 1, getdate())) " + 
+"			,(dateadd(month, - 2, getdate())) " + 
+"			,(dateadd(month, - 3, getdate())) " + 
+"			,(dateadd(month, - 4, getdate())) " + 
+"			,(dateadd(month, - 5, getdate())) " + 
+"			,(dateadd(month, - 6, getdate())) " + 
+"			,(dateadd(month, - 7, getdate())) " + 
+"			,(dateadd(month, - 8, getdate())) " + 
+"			,(dateadd(month, - 9, getdate())) " + 
+"			,(dateadd(month, - 10, getdate())) " + 
+"			,(dateadd(month, - 11, getdate())) " + 
+"			,(dateadd(month, - 12, getdate())) " + 
+"		) AS tt(dates) " + 
+"	) " + 
+"SELECT year AS yyear " + 
+"	,month AS mmonth " + 
+"	,coalesce(maximoprline, 0) AS maximoprline " + 
+"	,coalesce(mapicsprline, 0) AS mapicsprline " + 
+"FROM ( " + 
+"	SELECT * " + 
+"	FROM yearmonth " + 
+"	) tt1 " + 
+"LEFT JOIN ( " + 
+"SELECT year as yyear " + 
+    "	,month as mmonth" + 
     "	,sum(CASE WHEN potype = 'MAXIMO' THEN 1 ELSE 0 END) AS maximoprline " + 
     "	,sum(CASE WHEN potype = 'Regular PO' THEN 1 ELSE 0 END) AS mapicsprline " + 
     "FROM [iko_poinquiryv] " + 
     "WHERE siteid = '" + site + "' " + 
     "	AND itemnum <> '9999998' " + 
-    "	AND itemnum NOT LIKE '9S%' " + 
+    "   AND itemnum NOT LIKE '9S%' " + 
+    "   AND datecreated >= cast(DATEADD(month, DATEDIFF(month, 0, (dateadd(yy,-1,getdate()))), 0) as date) " +
     "GROUP BY year " + 
     "	,month " + 
     "	,siteid " + 
-    " " + 
-    "UNION " + 
-    " " + 
-    "SELECT year " + 
-    "	,month " + 
-    "	,maximoprline " + 
-    "	,mapicsprline " + 
-    "FROM [iko_poinquiryv_historical] " + 
-    "WHERE siteid = '" + site + "'";
+	"	) tt2 ON tt1.month = tt2.mmonth " + 
+"	AND tt1.year = tt2.yyear ";
 
     result = s.executeQuery(sql);
     temp = [];
     while (result.next()) {
         temp.push({
-            'year': result.getInt('year'),
-            'month': result.getInt('month'),
+            'year': result.getInt('yyear'),
+            'month': result.getInt('mmonth'),
             'maximoprline': result.getInt('maximoprline'),
             'mapicsprline': result.getInt('mapicsprline'),
-            'percentage': result.getInt('maximoprline')/(result.getInt('maximoprline')+result.getInt('mapicsprline')),
+            'percentage': result.getInt('maximoprline')/(result.getInt('maximoprline')+result.getInt('mapicsprline')) || 0,
         }
         );
     }

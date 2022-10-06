@@ -9,16 +9,50 @@ var s = con.createStatement();
 var sites = [];
 var sql = "select siteid from site";
 var result = s.executeQuery(sql);
+var ignoresites = ['GX', 'GP','GM','COM','GR'];
 while (result.next()) {
     sites.push(result.getString('siteid') + '');
 }
 if (sites.indexOf(site + '') == -1) {
     resp.error = typeof site + ' Site ID is not valid, Valid Site IDs: ' + sites;
-    var responseBody = JSON.stringify(resp);
+} else if (ignoresites.indexOf(site + '') != -1) {
+    resp.target = '-';
 } else {
     resp.target = 0.8;
     // get KPI data
-    sql = "SELECT DATEPART(month, main.startdate) mmonth " + 
+    sql = "WITH yearmonth ( " + 
+"	year " + 
+"	,month " + 
+"	) " + 
+"AS ( " + 
+"	SELECT datepart(year, dates) AS year " + 
+"		,datepart(month, dates) AS month " + 
+"	FROM ( " + 
+"		VALUES (dateadd(month, - 1, getdate())) " + 
+"			,(dateadd(month, - 2, getdate())) " + 
+"			,(dateadd(month, - 3, getdate())) " + 
+"			,(dateadd(month, - 4, getdate())) " + 
+"			,(dateadd(month, - 5, getdate())) " + 
+"			,(dateadd(month, - 6, getdate())) " + 
+"			,(dateadd(month, - 7, getdate())) " + 
+"			,(dateadd(month, - 8, getdate())) " + 
+"			,(dateadd(month, - 9, getdate())) " + 
+"			,(dateadd(month, - 10, getdate())) " + 
+"			,(dateadd(month, - 11, getdate())) " + 
+"			,(dateadd(month, - 12, getdate())) " + 
+"		) AS tt(dates) " + 
+"	) " + 
+"SELECT year AS yyear " + 
+"	,month AS mmonth " + 
+"	,coalesce(actualnonscheduledhours, 0) AS actualnonscheduledhours " + 
+"	,coalesce(actualscheduledhours, 0) AS actualscheduledhours " + 
+"	,coalesce(percentage, 0) AS percentage " + 
+"FROM ( " + 
+"	SELECT * " + 
+"	FROM yearmonth " + 
+"	) tt1 " + 
+"LEFT JOIN ( " + 
+"SELECT DATEPART(month, main.startdate) mmonth " + 
     "	,DATEPART(year, main.startdate) yyear " + 
     "	,sum(isnull(actualnonscheduled.laborhrs, 0)) AS actualnonscheduledhours " + 
     "	,sum(isnull(actualscheduled.laborhrs, 0)) AS actualscheduledhours " + 
@@ -156,7 +190,9 @@ if (sites.indexOf(site + '') == -1) {
     "WHERE main.siteid = '" + site + "' " + 
     "GROUP BY DATENAME(month, main.startdate) + '-' + DATENAME(year, main.startdate) " + 
     "	,DATEPART(month, main.startdate) " + 
-    "	,DATEPART(year, main.startdate) ";
+    "	,DATEPART(year, main.startdate) " +
+	"	) tt2 ON tt1.month = tt2.mmonth " + 
+"	AND tt1.year = tt2.yyear ";
 
     result = s.executeQuery(sql);
     temp = [];
@@ -175,6 +211,5 @@ if (sites.indexOf(site + '') == -1) {
     s.close();
     con.commit();
     MXServer.getMXServer().getDBManager().freeConnection(conKey);
-
-    var responseBody = JSON.stringify(resp);
 }
+var responseBody = JSON.stringify(resp);
