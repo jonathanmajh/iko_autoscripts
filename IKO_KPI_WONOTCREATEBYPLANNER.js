@@ -18,7 +18,7 @@ if (sites.indexOf(site + '') == -1) {
 } else if (ignoresites.indexOf(site + '') != -1) {
     resp.target = '-';
 } else {
-    resp.target = 0.8;
+    resp.target = 0.9;
     // get KPI data
     sql = "DECLARE @kpiname CHAR(50) " + 
     " " + 
